@@ -42,12 +42,12 @@ const BookingModal = ({ service, onClose, onSuccess }) => {
         </button>
         
         <div className="p-6 sm:p-8">
-          <h2 className="text-2xl font-bold text-gray-800 mb-1">Book a Ticket</h2>
-          <p className="text-gray-600 mb-6">Service: <span className="font-semibold text-indigo-600">{service.service_name}</span></p>
+          <h2 className="text-2xl font-bold text-gray-800 mb-1">حجز تذكرة</h2>
+          <p className="text-gray-600 mb-6">الخدمة: <span className="font-semibold text-indigo-600">{service.service_name}</span></p>
           
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
-              <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">Student Name</label>
+              <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">اسم الطالب/ة</label>
               <input
                 id="name"
                 type="text"
@@ -55,12 +55,12 @@ const BookingModal = ({ service, onClose, onSuccess }) => {
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all outline-none"
-                placeholder="John Doe"
+                placeholder="مثال: أحمد محمد"
               />
             </div>
             
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">University Email</label>
+              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">البريد الجامعي</label>
               <input
                 id="email"
                 type="email"
@@ -79,7 +79,7 @@ const BookingModal = ({ service, onClose, onSuccess }) => {
                 isSubmitting ? 'bg-indigo-400 cursor-not-allowed' : 'bg-indigo-600 hover:bg-indigo-700 hover:shadow-md'
               }`}
             >
-              {isSubmitting ? 'Validating...' : 'Confirm Book'}
+              {isSubmitting ? 'جاري التحقق...' : 'تأكيد الحجز'}
             </button>
           </form>
         </div>

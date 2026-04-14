@@ -40,7 +40,7 @@ const Track = () => {
       
       <div className={`max-w-md w-full rounded-2xl shadow-xl overflow-hidden transition-all duration-300 bg-white`}>
         <div className="p-6 text-center border-b border-gray-100">
-          <h2 className="text-sm font-semibold tracking-widest text-gray-400 uppercase mb-1">Live Ticket</h2>
+          <h2 className="text-sm font-semibold tracking-widest text-gray-400 uppercase mb-1">التذكرة المباشرة</h2>
           <h1 className="text-2xl font-bold text-gray-900">{ticket.student_name}</h1>
           <p className="text-indigo-600 font-medium">{ticket.service_name}</p>
         </div>
@@ -48,17 +48,17 @@ const Track = () => {
         <div className="p-8 pb-10">
           <div className="text-center space-y-8">
             <div>
-              <p className="text-gray-500 text-sm font-medium mb-1">Status</p>
+              <p className="text-gray-500 text-sm font-medium mb-1">الحالة</p>
               <div className="text-4xl font-black text-gray-900 tracking-tighter">
-                Waiting...
+                في الانتظار...
               </div>
             </div>
             
             <div className="bg-indigo-50 rounded-xl p-5 border border-indigo-100 flex items-center justify-center gap-3">
               <Clock className="w-6 h-6 text-indigo-500" />
-              <div className="text-left">
-                <p className="text-xs font-semibold text-indigo-500 uppercase tracking-wider">Estimated Wait</p>
-                <p className="text-xl font-bold text-indigo-900">{ticket.estWaitTime} mins</p>
+              <div className="text-start">
+                <p className="text-xs font-semibold text-indigo-500 uppercase tracking-wider">الوقت المتوقع</p>
+                <p className="text-xl font-bold text-indigo-900">{ticket.estWaitTime} دقيقة</p>
               </div>
             </div>
           </div>
@@ -72,7 +72,7 @@ const Track = () => {
         }} 
         className="mt-8 font-medium text-gray-500 hover:text-gray-900"
       >
-        Cancel Ticket & Return Home
+        إلغاء التذكرة والعودة
       </button>
     </div>
   );
