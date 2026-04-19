@@ -63,14 +63,8 @@ const AdminDashboard = () => {
       .in('status', ['waiting', 'calling', 'skipped'])
       .order('created_at', { ascending: true });
 
-    if (error) {
-      console.error('Error fetching tickets:', error);
-      setLoading(false);
-      return;
-    }
-
     let mappedReal = [];
-    if (realTickets && realTickets.length > 0) {
+    if (!error && realTickets && realTickets.length > 0) {
       mappedReal = realTickets.map(t => ({
         ...t,
         service_name: t.services?.service_name || 'خدمة عامة',
@@ -78,7 +72,8 @@ const AdminDashboard = () => {
       }));
     }
 
-    if (mappedReal.length === 0) {
+    if (error || mappedReal.length === 0) {
+      if (error) console.error('Error fetching tickets, falling back to mock data:', error);
       setTickets(_generateDummyTickets());
     } else {
       setTickets(mappedReal);
@@ -89,20 +84,17 @@ const AdminDashboard = () => {
 
   const fetchServices = async () => {
     const { data, error } = await supabase.from('services').select('*');
-    if (error) {
-       console.error('Error fetching services:', error);
-       return;
-    }
-
-    if (data && data.length > 0) {
-      setServices(data);
-    } else {
+    
+    if (error || !data || data.length === 0) {
+      if (error) console.error('Error fetching services, falling back to mock data:', error);
       setServices([
         { id: '1', service_name: 'شؤون الطلبة', estimated_duration_minutes: 10 },
         { id: '2', service_name: 'القسم المالي', estimated_duration_minutes: 15 },
         { id: '3', service_name: 'الدعم التقني', estimated_duration_minutes: 5 },
         { id: '4', service_name: 'خدمات المكتبة', estimated_duration_minutes: 8 }
       ]);
+    } else {
+      setServices(data);
     }
   };
 
