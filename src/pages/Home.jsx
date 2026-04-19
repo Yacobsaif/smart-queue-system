@@ -40,8 +40,8 @@ const Home = () => {
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
         <div className="mb-10 text-center max-w-2xl mx-auto">
-          <h2 className="text-3xl font-extrabold text-gray-900 mb-4 tracking-tight">اختر الخدمة</h2>
-          <p className="text-lg text-gray-600">اختر القسم أو الخدمة التي تحتاج المساعدة فيها. احجز مكانك في الطابور الافتراضي بكل سهولة وبدون إنشاء حساب.</p>
+          <h2 className="text-3xl font-extrabold text-gray-900 mb-4 tracking-tight">الخدمات المتاحة</h2>
+          <p className="text-lg text-gray-600">يرجى تحديد الخدمة أو القسم المطلوب لحجز موعدك في نظام الانتظار الإلكتروني الخاص بالمؤسسة.</p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

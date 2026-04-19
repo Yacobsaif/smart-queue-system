@@ -42,12 +42,12 @@ const BookingModal = ({ service, onClose, onSuccess }) => {
         </button>
         
         <div className="p-6 sm:p-8">
-          <h2 className="text-2xl font-bold text-gray-800 mb-1">حجز تذكرة</h2>
+          <h2 className="text-2xl font-bold text-gray-800 mb-1">إصدار تذكرة مراجعة</h2>
           <p className="text-gray-600 mb-6">الخدمة: <span className="font-semibold text-indigo-600">{service.service_name}</span></p>
           
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
-              <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">اسم الطالب/ة</label>
+              <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">اسم المراجع</label>
               <input
                 id="name"
                 type="text"
@@ -79,7 +79,7 @@ const BookingModal = ({ service, onClose, onSuccess }) => {
                 isSubmitting ? 'bg-indigo-400 cursor-not-allowed' : 'bg-indigo-600 hover:bg-indigo-700 hover:shadow-md'
               }`}
             >
-              {isSubmitting ? 'جاري التحقق...' : 'تأكيد الحجز'}
+              {isSubmitting ? 'جاري إصدار التذكرة...' : 'تأكيد إصدار التذكرة'}
             </button>
           </form>
         </div>

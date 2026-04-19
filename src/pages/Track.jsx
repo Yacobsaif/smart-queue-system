@@ -40,7 +40,7 @@ const Track = () => {
       
       <div className={`max-w-md w-full rounded-2xl shadow-xl overflow-hidden transition-all duration-300 bg-white`}>
         <div className="p-6 text-center border-b border-gray-100">
-          <h2 className="text-sm font-semibold tracking-widest text-gray-400 uppercase mb-1">التذكرة المباشرة</h2>
+          <h2 className="text-sm font-semibold tracking-widest text-gray-400 uppercase mb-1">تذكرة المراجعة الإلكترونية</h2>
           <h1 className="text-2xl font-bold text-gray-900">{ticket.student_name}</h1>
           <p className="text-indigo-600 font-medium">{ticket.service_name}</p>
         </div>
@@ -50,14 +50,14 @@ const Track = () => {
             <div>
               <p className="text-gray-500 text-sm font-medium mb-1">الحالة</p>
               <div className="text-4xl font-black text-gray-900 tracking-tighter">
-                في الانتظار...
+                في قائمة الانتظار...
               </div>
             </div>
             
             <div className="bg-indigo-50 rounded-xl p-5 border border-indigo-100 flex items-center justify-center gap-3">
               <Clock className="w-6 h-6 text-indigo-500" />
               <div className="text-start">
-                <p className="text-xs font-semibold text-indigo-500 uppercase tracking-wider">الوقت المتوقع</p>
+                <p className="text-xs font-semibold text-indigo-500 uppercase tracking-wider">وقت الانتظار التقريبي</p>
                 <p className="text-xl font-bold text-indigo-900">{ticket.estWaitTime} دقيقة</p>
               </div>
             </div>

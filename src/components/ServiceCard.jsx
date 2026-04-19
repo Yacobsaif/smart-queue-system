@@ -12,7 +12,7 @@ const ServiceCard = ({ service, waitingCount, onBook }) => {
         
         <div className="flex items-center text-gray-600 mb-2">
           <Users className="w-5 h-5 ml-2 text-indigo-500" />
-          <span>{waitingCount} طلاب في الانتظار (أو قيد المعالجة)</span>
+          <span>{waitingCount} مستفيد في قائمة الانتظار</span>
         </div>
         
         <div className="flex items-center text-gray-600 mb-6">
@@ -25,7 +25,7 @@ const ServiceCard = ({ service, waitingCount, onBook }) => {
         onClick={() => onBook(service)}
         className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-3 px-4 rounded-lg transition-colors duration-200"
       >
-        احجز الآن
+        طلب الخدمة
       </button>
     </div>
   );
