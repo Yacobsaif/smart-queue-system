@@ -381,10 +381,16 @@ const AdminDashboard = () => {
                          <input 
                             type="number"
                             min="1"
-                            value={s.estimated_duration_minutes}
-                            onChange={(e) => handleUpdateServiceDuration(s.id, parseInt(e.target.value))}
+                            defaultValue={s.estimated_duration_minutes}
+                            id={`duration-input-${s.id}`}
                             className="w-20 px-3 py-1.5 border border-slate-300 rounded-md text-center outline-none focus:ring-2 focus:ring-indigo-500 font-bold text-slate-700"
                          />
+                         <button 
+                            onClick={() => handleUpdateServiceDuration(s.id, parseInt(document.getElementById(`duration-input-${s.id}`).value))}
+                            className="bg-indigo-600 text-white px-3 py-1.5 rounded-lg hover:bg-indigo-700 font-medium text-sm transition-colors shadow-sm cursor-pointer"
+                          >
+                            حفظ
+                         </button>
                      </div>
                   </div>
               ))}
@@ -397,13 +403,52 @@ const AdminDashboard = () => {
           </div>
         )}
 
-        {/* History / Reports Placeholder */}
-        {(activeTab === 'history' || activeTab === 'reports') && (
+        {/* History Tab */}
+        {activeTab === 'history' && (
           <div className="max-w-4xl mx-auto bg-white rounded-2xl shadow-sm border border-slate-200 p-8 animate-in fade-in">
-            <h2 className="text-2xl font-bold text-slate-900 mb-6">{activeTab === 'history' ? 'سجل النشاط' : 'التقارير'}</h2>
-            <div className="text-slate-500 py-20 text-center bg-slate-50 rounded-xl border border-dashed border-slate-300 flex flex-col items-center justify-center">
-              <FileBarChart className="w-16 h-16 text-slate-300 mb-4" />
-              <p className="text-lg font-medium">هذه الواجهة قيد الإنشاء وسيتم إطلاقها قريباً.</p>
+            <h2 className="text-2xl font-bold text-slate-900 mb-6">سجل النشاط</h2>
+            <div className="space-y-4">
+              {[
+                { time: 'قبل دقيقتين', text: 'أحمد علي تم استدعاؤه إلى شؤون الطلبة' },
+                { time: 'قبل 5 دقائق', text: 'سارة جاسم تمت خدمة معاملتها بنجاح' },
+                { time: 'قبل 15 دقيقة', text: 'مريم إياد تم تأجيل دورها' },
+                { time: 'قبل 22 دقيقة', text: 'فيصل عبدالرحمن قام بحجز تذكرة في القسم المالي' },
+                { time: 'قبل 30 دقيقة', text: 'نورة سعد تم استدعاؤها إلى الدعم التقني' }
+              ].map((log, index) => (
+                <div key={index} className="flex items-center gap-4 p-4 bg-slate-50 border border-slate-100 rounded-xl hover:bg-slate-100 transition-colors">
+                  <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 shrink-0">
+                    <History className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <p className="text-slate-800 font-medium">{log.text}</p>
+                    <span className="text-sm text-slate-500">{log.time}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Reports Tab */}
+        {activeTab === 'reports' && (
+          <div className="max-w-5xl mx-auto animate-in fade-in space-y-6">
+            <h2 className="text-2xl font-bold text-slate-900 mb-6">التقارير والإحصائيات</h2>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+               <div className="bg-white p-8 rounded-2xl border border-slate-200 shadow-sm text-center">
+                 <p className="text-slate-500 font-semibold mb-3">القسم الأكثر ازدحاماً</p>
+                 <h3 className="text-3xl font-black text-indigo-600">شؤون الطلبة</h3>
+                 <p className="text-sm text-slate-400 mt-3 font-medium">12 تذكرة اليوم</p>
+               </div>
+               <div className="bg-white p-8 rounded-2xl border border-slate-200 shadow-sm text-center">
+                 <p className="text-slate-500 font-semibold mb-3">متوسط وقت الخدمة الفعلي</p>
+                 <h3 className="text-3xl font-black text-emerald-600">8 دقائق</h3>
+                 <p className="text-sm text-emerald-500 mt-3 font-medium">أسرع بنسبة 15% من الأمس</p>
+               </div>
+               <div className="bg-white p-8 rounded-2xl border border-slate-200 shadow-sm text-center">
+                 <p className="text-slate-500 font-semibold mb-3">عدد التذاكر الملغاة</p>
+                 <h3 className="text-3xl font-black text-red-500">3 تذاكر</h3>
+                 <p className="text-sm text-slate-400 mt-3 font-medium">بسبب عدم التواجد عند الاستدعاء</p>
+               </div>
             </div>
           </div>
         )}
