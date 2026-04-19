@@ -17,14 +17,15 @@ import {
 
 const _generateDummyTickets = () => {
   const services = ['شؤون الطلبة', 'القسم المالي', 'الدعم التقني'];
-  const names = ['أحمد محمد', 'فاطمة علي', 'سالم عبدالله', 'عائشة سعيد', 'طارق منصور'];
+  const names = ['أحمد علي', 'سارة جاسم', 'محمد حسن', 'مريم إياد', 'فيصل عبدالرحمن', 'نورة سعد', 'خالد فهد', 'شهد ناصر', 'عبدالله تركي', 'حصة صالح'];
+  const statuses = ['calling', 'waiting', 'waiting', 'skipped', 'waiting', 'waiting', 'calling', 'waiting', 'skipped', 'waiting'];
   
   return Array.from({ length: 10 }).map((_, i) => ({
     id: `dummy_${i}`,
-    student_name: names[i % names.length] + ` (${i + 1})`,
+    student_name: names[i],
     service_name: services[i % services.length],
-    status: i === 0 ? 'calling' : 'waiting',
-    created_at: new Date(Date.now() - (10 - i) * 60000).toISOString(),
+    status: statuses[i],
+    created_at: new Date(Date.now() - (15 - i) * 60000).toISOString(),
     isDummy: true
   }));
 };
@@ -276,12 +277,21 @@ const AdminDashboard = () => {
                         {filteredTickets.map((ticket, index) => (
                         <tr 
                             key={ticket.id} 
-                            className={`transition-all duration-500 ${flashingTicketId === ticket.id ? 'bg-green-50 ring-2 ring-emerald-400 ring-inset scale-[1.01]' : 'hover:bg-slate-50'}`}
+                            className={`transition-all duration-500 ${
+                                flashingTicketId === ticket.id ? 'bg-green-50 ring-2 ring-emerald-400 ring-inset scale-[1.01]' : 
+                                ticket.status === 'calling' ? 'bg-emerald-50/60' : 'hover:bg-slate-50'
+                            }`}
                         >
                             <td className="py-4 px-6 font-semibold text-slate-800">
                                 #{ticket.isDummy ? index + 1 : ticket.id.toString().slice(0, 5)}
                             </td>
-                            <td className="py-4 px-6 text-slate-900 font-medium">
+                            <td className="py-4 px-6 text-slate-900 font-medium flex items-center gap-2">
+                                {ticket.status === 'calling' && (
+                                    <span className="relative flex h-3 w-3 shrink-0">
+                                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                                      <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+                                    </span>
+                                )}
                                 {ticket.student_name}
                             </td>
                             <td className="py-4 px-6 text-slate-600">{ticket.service_name}</td>
