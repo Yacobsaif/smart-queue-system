@@ -5,10 +5,14 @@ import {
   LayoutDashboard, 
   Settings, 
   History, 
+  FileBarChart,
   BellRing, 
   CheckCircle, 
   Clock, 
-  LogOut 
+  LogOut,
+  Users,
+  CheckSquare,
+  Timer
 } from 'lucide-react';
 
 const _generateDummyTickets = () => {
@@ -28,15 +32,21 @@ const _generateDummyTickets = () => {
 const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState('queue');
   const [tickets, setTickets] = useState([]);
+  const [services, setServices] = useState([]);
+  const [completedToday, setCompletedToday] = useState(42); 
   const [loading, setLoading] = useState(true);
   const [flashingTicketId, setFlashingTicketId] = useState(null);
+  const [departmentFilter, setDepartmentFilter] = useState('all');
 
   useEffect(() => {
     fetchActiveTickets();
+    fetchServices();
 
     const channel = supabase
       .channel('public:tickets')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'tickets' }, fetchActiveTickets)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'tickets' }, () => {
+        fetchActiveTickets();
+      })
       .subscribe();
 
     return () => {
@@ -67,36 +77,50 @@ const AdminDashboard = () => {
       }));
     }
 
-    // Merge logic: If empty or less than 3, inject dummies to make it look full for demo
     if (mappedReal.length === 0) {
       setTickets(_generateDummyTickets());
     } else {
-      const dummyPad = _generateDummyTickets().slice(0, Math.max(0, 10 - mappedReal.length));
-      setTickets([...mappedReal, ...dummyPad]);
+      setTickets(mappedReal);
     }
     
     setLoading(false);
   };
 
+  const fetchServices = async () => {
+    const { data } = await supabase.from('services').select('*');
+    if (data) setServices(data);
+  };
+
+  const handleUpdateServiceDuration = async (id, newDuration) => {
+    if (!newDuration || isNaN(newDuration)) return;
+    const { error } = await supabase
+      .from('services')
+      .update({ estimated_duration_minutes: newDuration })
+      .eq('id', id);
+      
+    if (!error) {
+       setServices(prev => prev.map(s => s.id === id ? { ...s, estimated_duration_minutes: newDuration } : s));
+    }
+  };
+
   const handleCallNext = async (ticket) => {
     setFlashingTicketId(ticket.id);
     
-    // Webhook Notification
+    // Trigger real Webhook / Notification wrapper
     await triggerNotification({
       event: 'call_next',
       ticket_id: ticket.id,
       student_name: ticket.student_name,
-      message: 'Status: Your Turn'
+      message: 'جارٍ الاستدعاء'
     });
 
     if (!ticket.isDummy) {
       await supabase.from('tickets').update({ status: 'calling' }).eq('id', ticket.id);
     } else {
-      // Simulate real-time dummy update
       setTickets(prev => prev.map(t => t.id === ticket.id ? { ...t, status: 'calling' } : t));
     }
     
-    setTimeout(() => setFlashingTicketId(null), 3000); // 3 seconds pulsing green
+    setTimeout(() => setFlashingTicketId(null), 3000); 
   };
 
   const handleComplete = async (ticket) => {
@@ -105,6 +129,7 @@ const AdminDashboard = () => {
     } else {
       setTickets(prev => prev.filter(t => t.id !== ticket.id));
     }
+    setCompletedToday(c => c + 1);
   };
 
   const handleSnooze = async (ticket) => {
@@ -112,17 +137,15 @@ const AdminDashboard = () => {
       event: 'snooze',
       ticket_id: ticket.id,
       student_name: ticket.student_name,
-      message: 'Status: Delayed'
+      message: 'تم التأجيل'
     });
 
     if (!ticket.isDummy) {
-      // Move to back of the line by updating created_at
       await supabase.from('tickets').update({ 
         status: 'skipped', 
         created_at: new Date().toISOString() 
       }).eq('id', ticket.id);
     } else {
-      // Simulate snooze internally
       setTickets(prev => {
         const remaining = prev.filter(t => t.id !== ticket.id);
         const snoozed = { ...ticket, status: 'skipped', created_at: new Date().toISOString() };
@@ -131,43 +154,55 @@ const AdminDashboard = () => {
     }
   };
 
+  const getElapsedTime = (dateStr) => {
+    const start = new Date(dateStr);
+    const now = new Date();
+    const diffMins = Math.floor((now - start) / 60000);
+    return `${Math.max(0, diffMins)} دقيقة`;
+  };
+
+  const filteredTickets = tickets.filter(t => departmentFilter === 'all' || t.service_name === departmentFilter);
+  // Distinct departments for filter drop down
+  const departments = [...new Set(tickets.map(t => t.service_name))];
+
   return (
-    <div className="min-h-screen bg-gray-50 font-sans flex text-gray-900" dir="rtl">
+    <div className="min-h-screen bg-slate-50 font-sans flex text-slate-900" dir="rtl">
       {/* Sidebar Layout */}
-      <aside className="w-64 bg-[#0f172a] text-gray-300 flex flex-col items-center py-8 shadow-xl">
+      <aside className="w-64 bg-slate-900 text-slate-300 flex flex-col items-center py-8 shadow-2xl z-10 shrink-0">
         <div className="flex items-center gap-3 mb-12 text-white px-6 w-full">
-          <div className="bg-indigo-500 rounded p-2 text-xl font-bold">ط</div>
-          <h1 className="text-xl font-bold tracking-wider">لوحة التحكم</h1>
+          <div className="bg-indigo-600 rounded p-2 text-xl font-bold border border-indigo-500 shadow-sm">ط</div>
+          <h1 className="text-xl font-bold tracking-wider">نظام الطوابير الذكي</h1>
         </div>
         
         <nav className="flex-1 w-full space-y-2 px-4">
-          <button 
+          <SidebarNavButton 
+            active={activeTab === 'queue'} 
             onClick={() => setActiveTab('queue')}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'queue' ? 'bg-indigo-600 text-white shadow-lg' : 'hover:bg-slate-800 hover:text-white'}`}
-          >
-            <LayoutDashboard className="w-5 h-5" />
-            <span className="font-medium">الطابور الحالي</span>
-          </button>
-          
-          <button 
+            icon={<LayoutDashboard className="w-5 h-5" />} 
+            label="لوحة التحكم" 
+          />
+          <SidebarNavButton 
+            active={activeTab === 'settings'} 
             onClick={() => setActiveTab('settings')}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'settings' ? 'bg-indigo-600 text-white shadow-lg' : 'hover:bg-slate-800 hover:text-white'}`}
-          >
-            <Settings className="w-5 h-5" />
-            <span className="font-medium">إعدادات الخدمات</span>
-          </button>
-
-          <button 
+            icon={<Settings className="w-5 h-5" />} 
+            label="إعدادات الأقسام" 
+          />
+          <SidebarNavButton 
+            active={activeTab === 'history'} 
             onClick={() => setActiveTab('history')}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'history' ? 'bg-indigo-600 text-white shadow-lg' : 'hover:bg-slate-800 hover:text-white'}`}
-          >
-            <History className="w-5 h-5" />
-            <span className="font-medium">السجل</span>
-          </button>
+            icon={<History className="w-5 h-5" />} 
+            label="سجل النشاط" 
+          />
+          <SidebarNavButton 
+            active={activeTab === 'reports'} 
+            onClick={() => setActiveTab('reports')}
+            icon={<FileBarChart className="w-5 h-5" />} 
+            label="التقارير" 
+          />
         </nav>
 
         <div className="mt-auto px-4 w-full">
-          <button className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-400 hover:bg-red-500/10 hover:text-red-400 transition-colors">
+          <button className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-400 hover:bg-slate-800 hover:text-white transition-colors">
             <LogOut className="w-5 h-5" />
             <span className="font-medium">تسجيل الخروج</span>
           </button>
@@ -175,105 +210,175 @@ const AdminDashboard = () => {
       </aside>
 
       {/* Main Content Area */}
-      <main className="flex-1 p-8 lg:p-12 overflow-auto bg-slate-50">
+      <main className="flex-1 p-6 lg:p-10 overflow-auto h-screen relative">
         {activeTab === 'queue' && (
-          <div className="max-w-6xl mx-auto space-y-6">
-            <header className="flex justify-between items-end mb-8">
+          <div className="max-w-7xl mx-auto space-y-8 animate-in fade-in duration-300">
+            <header className="flex flex-col md:flex-row md:justify-between md:items-end gap-4">
               <div>
-                <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight">إدارة الطابور النشط</h2>
-                <p className="text-slate-500 mt-2">تحكم بحركة الطلاب، استدعاء المراجعين، وإنجاز المهام فورياً.</p>
+                <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight">لوحة التحكم</h2>
+                <p className="text-slate-500 mt-2">إدارة الطابور النشط، واستدعاء المراجعين، وإنجاز المعاملات.</p>
               </div>
-              <div className="bg-white px-5 py-2 rounded-full shadow-sm border border-slate-200 text-sm font-semibold text-slate-600">
-                إجمالي التذاكر: {tickets.length}
+                 
+              <div className="flex items-center gap-3">
+                 <select 
+                    value={departmentFilter}
+                    onChange={(e) => setDepartmentFilter(e.target.value)}
+                    className="bg-white border border-slate-300 text-slate-700 rounded-lg px-4 py-2 font-medium focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none shadow-sm cursor-pointer"
+                 >
+                    <option value="all">كل الأقسام</option>
+                    {departments.map((dep, i) => (
+                        <option key={i} value={dep}>{dep}</option>
+                    ))}
+                 </select>
               </div>
             </header>
 
+            {/* Top Stats Overview */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <StatCard 
+                    title="إجمالي المنتظرين" 
+                    value={tickets.length} 
+                    icon={<Users className="w-8 h-8 text-blue-500" />} 
+                    color="bg-blue-50 text-blue-600"
+                />
+                <StatCard 
+                    title="تمت خدمتهم" 
+                    value={completedToday} 
+                    icon={<CheckSquare className="w-8 h-8 text-emerald-500" />} 
+                    color="bg-emerald-50 text-emerald-600"
+                />
+                <StatCard 
+                    title="متوسط وقت الانتظار" 
+                    value="12 دقيقة" 
+                    icon={<Timer className="w-8 h-8 text-amber-500" />} 
+                    color="bg-amber-50 text-amber-600"
+                />
+            </div>
+
+            {/* Queue Table */}
             {loading ? (
               <div className="flex justify-center py-20"><div className="animate-spin h-10 w-10 border-b-2 border-indigo-600 rounded-full"></div></div>
             ) : (
               <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-                <table className="w-full text-start">
-                  <thead className="bg-slate-50 border-b border-slate-200">
-                    <tr>
-                      <th className="py-4 px-6 text-sm font-bold text-slate-600 tracking-wider">رقم الدور</th>
-                      <th className="py-4 px-6 text-sm font-bold text-slate-600 tracking-wider">اسم الطالب</th>
-                      <th className="py-4 px-6 text-sm font-bold text-slate-600 tracking-wider">الخدمة</th>
-                      <th className="py-4 px-6 text-sm font-bold text-slate-600 tracking-wider">الحالة</th>
-                      <th className="py-4 px-6 text-sm font-bold text-slate-600 tracking-wider text-center">الإجراءات</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {tickets.map((ticket, index) => (
-                      <tr 
-                        key={ticket.id} 
-                        className={`transition-all duration-300 ${flashingTicketId === ticket.id ? 'bg-green-50 ring-2 ring-green-400 ring-inset scale-[1.01]' : 'hover:bg-slate-50'}`}
-                      >
-                        <td className="py-4 px-6 font-semibold text-slate-700">#{index + 1}</td>
-                        <td className="py-4 px-6 text-slate-900 font-medium">
-                          {ticket.student_name}
-                          {ticket.isDummy && <span className="text-xs bg-slate-100 text-slate-400 px-2 py-0.5 rounded-full mr-2">وهمي</span>}
-                        </td>
-                        <td className="py-4 px-6 text-slate-500">{ticket.service_name}</td>
-                        <td className="py-4 px-6">
-                          <span className={`px-3 py-1 rounded-full text-xs font-bold ${
-                            ticket.status === 'calling' ? 'bg-green-100 text-green-700' :
-                            ticket.status === 'skipped' ? 'bg-amber-100 text-amber-700' :
-                            'bg-slate-100 text-slate-600'
-                          }`}>
-                            {ticket.status === 'calling' ? 'جاري الاستدعاء' : ticket.status === 'skipped' ? 'تم التأجيل' : 'في الانتظار'}
-                          </span>
-                        </td>
-                        <td className="py-4 px-6 flex justify-center gap-2">
-                          <button 
-                            onClick={() => handleCallNext(ticket)}
-                            className="bg-indigo-50 text-indigo-700 hover:bg-indigo-600 hover:text-white p-2 rounded-lg transition-colors shadow-sm cursor-pointer"
-                            title="استدعاء التالي"
-                          >
-                            <BellRing className="w-5 h-5" />
-                          </button>
-                          <button 
-                            onClick={() => handleComplete(ticket)}
-                            className="bg-emerald-50 text-emerald-700 hover:bg-emerald-500 hover:text-white p-2 rounded-lg transition-colors shadow-sm cursor-pointer"
-                            title="إنجاز المهمة"
-                          >
-                            <CheckCircle className="w-5 h-5" />
-                          </button>
-                          <button 
-                            onClick={() => handleSnooze(ticket)}
-                            className="bg-amber-50 text-amber-700 hover:bg-amber-500 hover:text-white p-2 rounded-lg transition-colors shadow-sm cursor-pointer"
-                            title="تأجيل للتالي"
-                          >
-                            <Clock className="w-5 h-5" />
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-                {tickets.length === 0 && (
-                  <div className="p-12 text-center text-slate-400 font-medium">
-                    لا يوجد طابور نشط حالياً.
-                  </div>
-                )}
+                <div className="overflow-x-auto">
+                    <table className="w-full text-start whitespace-nowrap">
+                    <thead className="bg-slate-50 border-b border-slate-200">
+                        <tr>
+                        <th className="py-4 px-6 text-sm font-bold text-slate-600 tracking-wider">رقم الدور</th>
+                        <th className="py-4 px-6 text-sm font-bold text-slate-600 tracking-wider">اسم الطالب</th>
+                        <th className="py-4 px-6 text-sm font-bold text-slate-600 tracking-wider">نوع المعاملة</th>
+                        <th className="py-4 px-6 text-sm font-bold text-slate-600 tracking-wider">وقت الانتظار</th>
+                        <th className="py-4 px-6 text-sm font-bold text-slate-600 tracking-wider">الحالة</th>
+                        <th className="py-4 px-6 text-sm font-bold text-slate-600 tracking-wider text-center">الإجراءات</th>
+                        </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                        {filteredTickets.map((ticket, index) => (
+                        <tr 
+                            key={ticket.id} 
+                            className={`transition-all duration-500 ${flashingTicketId === ticket.id ? 'bg-green-50 ring-2 ring-emerald-400 ring-inset scale-[1.01]' : 'hover:bg-slate-50'}`}
+                        >
+                            <td className="py-4 px-6 font-semibold text-slate-800">
+                                #{ticket.isDummy ? index + 1 : ticket.id.toString().slice(0, 5)}
+                            </td>
+                            <td className="py-4 px-6 text-slate-900 font-medium">
+                                {ticket.student_name}
+                            </td>
+                            <td className="py-4 px-6 text-slate-600">{ticket.service_name}</td>
+                            <td className="py-4 px-6 text-slate-600 font-medium">{getElapsedTime(ticket.created_at)}</td>
+                            <td className="py-4 px-6">
+                            <span className={`px-4 py-1.5 rounded-full text-xs font-bold inline-block border ${
+                                ticket.status === 'calling' ? 'bg-indigo-50 text-indigo-700 border-indigo-200 shadow-sm' :
+                                ticket.status === 'skipped' ? 'bg-amber-50 text-amber-700 border-amber-200' :
+                                'bg-slate-100 text-slate-600 border-slate-200'
+                            }`}>
+                                {ticket.status === 'calling' ? 'جارٍ الاستدعاء' : ticket.status === 'skipped' ? 'متأخر' : 'في الانتظار'}
+                            </span>
+                            </td>
+                            <td className="py-4 px-6">
+                                <div className="flex justify-center gap-2">
+                                <button 
+                                    onClick={() => handleCallNext(ticket)}
+                                    className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 text-indigo-700 rounded-lg hover:bg-indigo-600 hover:text-white transition-all shadow-sm cursor-pointer border border-indigo-100 hover:border-transparent text-sm font-semibold"
+                                    title="استدعاء"
+                                >
+                                    <BellRing className="w-4 h-4" />
+                                    استدعاء
+                                </button>
+                                <button 
+                                    onClick={() => handleComplete(ticket)}
+                                    className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 text-emerald-700 rounded-lg hover:bg-emerald-600 hover:text-white transition-all shadow-sm cursor-pointer border border-emerald-100 hover:border-transparent text-sm font-semibold"
+                                    title="إنجاز"
+                                >
+                                    <CheckCircle className="w-4 h-4" />
+                                    إنجاز
+                                </button>
+                                <button 
+                                    onClick={() => handleSnooze(ticket)}
+                                    className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 text-amber-700 rounded-lg hover:bg-amber-500 hover:text-white transition-all shadow-sm cursor-pointer border border-amber-100 hover:border-transparent text-sm font-semibold"
+                                    title="تأجيل"
+                                >
+                                    <Clock className="w-4 h-4" />
+                                    تأجيل
+                                </button>
+                                </div>
+                            </td>
+                        </tr>
+                        ))}
+                        {filteredTickets.length === 0 && (
+                            <tr>
+                                <td colSpan="6">
+                                    <div className="py-16 text-center text-slate-400 font-medium flex flex-col items-center">
+                                       <CheckCircle className="w-12 h-12 mb-3 text-slate-200" />
+                                       لا توجد تذاكر نشطة في هذا القسم حالياً.
+                                    </div>
+                                </td>
+                            </tr>
+                        )}
+                    </tbody>
+                    </table>
+                </div>
               </div>
             )}
           </div>
         )}
 
+        {/* Settings Tab */}
         {activeTab === 'settings' && (
-          <div className="max-w-4xl mx-auto bg-white rounded-2xl shadow-sm border border-slate-200 p-8">
-            <h2 className="text-2xl font-bold text-slate-900 mb-6">إعدادات الخدمات</h2>
-            <div className="text-slate-500 py-10 text-center bg-slate-50 rounded-xl border border-dashed border-slate-300">
-              واجهة التحكم بتعديل مدد الانتظار للخدمات قيد الإنشاء...
+          <div className="max-w-4xl mx-auto bg-white rounded-2xl shadow-sm border border-slate-200 p-8 animate-in fade-in">
+            <h2 className="text-2xl font-bold text-slate-900 mb-6">إعدادات الأقسام</h2>
+            <div className="space-y-4">
+              {services.map(s => (
+                  <div key={s.id} className="flex flex-col sm:flex-row sm:justify-between sm:items-center bg-slate-50 p-5 rounded-xl border border-slate-200 gap-4">
+                     <span className="font-semibold text-lg text-slate-800">{s.service_name}</span>
+                     <div className="flex items-center gap-4 bg-white px-4 py-2 rounded-lg border border-slate-200 shadow-sm">
+                         <span className="text-sm font-medium text-slate-600">مدة الانتظار (دقائق):</span>
+                         <input 
+                            type="number"
+                            min="1"
+                            value={s.estimated_duration_minutes}
+                            onChange={(e) => handleUpdateServiceDuration(s.id, parseInt(e.target.value))}
+                            className="w-20 px-3 py-1.5 border border-slate-300 rounded-md text-center outline-none focus:ring-2 focus:ring-indigo-500 font-bold text-slate-700"
+                         />
+                     </div>
+                  </div>
+              ))}
+              {services.length === 0 && (
+                  <div className="text-center py-8 text-slate-500 bg-slate-50 rounded-xl border border-dashed border-slate-300">
+                      جاري تحميل الأقسام أو لا توجد أقسام مسجلة...
+                  </div>
+              )}
             </div>
           </div>
         )}
 
-        {activeTab === 'history' && (
-          <div className="max-w-4xl mx-auto bg-white rounded-2xl shadow-sm border border-slate-200 p-8">
-            <h2 className="text-2xl font-bold text-slate-900 mb-6">سجل الإنجازات</h2>
-            <div className="text-slate-500 py-10 text-center bg-slate-50 rounded-xl border border-dashed border-slate-300">
-              تصفح التذاكر المنجزة اليوم - قيد الإنشاء...
+        {/* History / Reports Placeholder */}
+        {(activeTab === 'history' || activeTab === 'reports') && (
+          <div className="max-w-4xl mx-auto bg-white rounded-2xl shadow-sm border border-slate-200 p-8 animate-in fade-in">
+            <h2 className="text-2xl font-bold text-slate-900 mb-6">{activeTab === 'history' ? 'سجل النشاط' : 'التقارير'}</h2>
+            <div className="text-slate-500 py-20 text-center bg-slate-50 rounded-xl border border-dashed border-slate-300 flex flex-col items-center justify-center">
+              <FileBarChart className="w-16 h-16 text-slate-300 mb-4" />
+              <p className="text-lg font-medium">هذه الواجهة قيد الإنشاء وسيتم إطلاقها قريباً.</p>
             </div>
           </div>
         )}
@@ -281,5 +386,31 @@ const AdminDashboard = () => {
     </div>
   );
 };
+
+const SidebarNavButton = ({ active, onClick, icon, label }) => (
+    <button 
+        onClick={onClick}
+        className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-xl transition-all font-medium ${
+            active 
+            ? 'bg-indigo-600 text-white shadow-md pointer-events-none' 
+            : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+        }`}
+    >
+        {icon}
+        <span className="text-sm tracking-wide">{label}</span>
+    </button>
+);
+
+const StatCard = ({ title, value, icon, color }) => (
+    <div className="bg-white rounded-2xl border border-slate-200 p-6 flex flex-row-reverse items-center justify-between gap-5 shadow-sm hover:shadow-md transition-shadow">
+        <div className={`p-4 rounded-full ${color.split(' ')[0]} ${color.split(' ')[1]}`}>
+            {icon}
+        </div>
+        <div className="text-end">
+            <p className="text-slate-500 text-sm font-bold mb-2 uppercase tracking-widest">{title}</p>
+            <h3 className="text-4xl font-black text-slate-800">{value}</h3>
+        </div>
+    </div>
+);
 
 export default AdminDashboard;
